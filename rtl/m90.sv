@@ -261,7 +261,7 @@ wire [15:0] switches_p3_p4 = { ~switches_p4, ~switches_p3 };
 
 wire [15:0] flags = { 8'h00, 1'b0, 1'b1, 1'b1 /*TEST*/, 1'b1 /*R*/, ~coin[1:0], ~start_buttons[1:0] };
 
-wire NL = ~dip_sw[8];
+wire NL = dip_sw[8];
 
 reg sound_reset = 0;
 
@@ -349,7 +349,7 @@ address_translator address_translator(
     .bank_select
 );
 
-wire vblank, hblank, vsync, hsync, hint;
+wire vblank, hblank, vsync, hsync;
 
 assign HSync = hsync;
 assign HBlank = hblank;
@@ -372,7 +372,8 @@ GA25 ga25(
     .clk(clk_sys),
     .clk_ram(clk_ram),
 
-    .ce(ce_pix),
+    .ce(ce_13m),
+    .ce_pix(ce_pix),
 
     .reset(~reset_n),
 
@@ -401,8 +402,6 @@ GA25 ga25(
     .hblank(hblank),
     .vsync(vsync),
     .hsync(hsync),
-
-    .hint(hint),
 
     .color_out(ga25_color),
 

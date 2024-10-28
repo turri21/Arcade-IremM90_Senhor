@@ -22,17 +22,16 @@ module ga23_layer(
 
     input NL,
 
-    input large_tileset,
-
     // io registers
-    input [9:0] x_ofs,
-    input [9:0] y_ofs,
     input [7:0] control,
 
     // position
     input [9:0] x_base,
-    input [9:0] y,
+    input [9:0] y_base,
+    input [9:0] x_ofs,
+    input [9:0] y_ofs,
     input [9:0] rowscroll,
+    input [9:0] rowselect,
 
     // vram address for current tile
     output [14:0] vram_addr,
@@ -44,6 +43,7 @@ module ga23_layer(
 
     output prio_out,
     output [7:0] color_out,
+    output color_enabled,
 
     input [31:0] sdr_data,
     output reg [21:0] sdr_addr,
@@ -57,7 +57,9 @@ wire [14:0] vram_base = { control[1:0], 13'd0 };
 wire wide = control[2];
 wire enabled = ~control[4] & dbg_enabled;
 wire en_rowscroll = control[5];
+wire en_rowselect = control[6];
 wire [9:0] x = x_base + ( en_rowscroll ? rowscroll : x_ofs );
+wire [9:0] y = y_base + ( en_rowselect ? rowselect : y_ofs );
 wire [6:0] tile_x = NL ? ( x[9:3] - ( wide ? 7'd32 : 7'd0) ) : ( x[9:3] + ( wide ? 7'd32 : 7'd0) );
 wire [5:0] tile_y = y[8:3];
 
@@ -76,7 +78,7 @@ always_ff @(posedge clk) begin
 
     if (ce_pix) begin
         cnt <= cnt + 4'd1;
-        if (load & dbg_enabled) begin
+        if (load & enabled) begin
             cnt <= 4'd0;
             sdr_addr <= { 1'b0, index, flip_y ? ~y[2:0] : y[2:0], 2'b00 };
             sdr_req <= 1;
@@ -109,5 +111,5 @@ ga23_shifter shifter(
 
 assign color_out = enabled ? shift_color_out : 11'd0;
 assign prio_out = enabled ? ( ( shift_prio_out[0] & shift_color_out[3] ) | ( shift_prio_out[1] & |shift_color_out[3:0] ) ) : 1'b0;
-
+assign color_enabled = enabled;
 endmodule
