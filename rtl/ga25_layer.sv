@@ -16,7 +16,7 @@
 //  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //============================================================================
 
-module ga23_layer(
+module ga25_layer(
     input clk,
     input ce_pix,
 
@@ -93,7 +93,7 @@ end
 wire [1:0] shift_prio_out;
 wire [7:0] shift_color_out;
 
-ga23_shifter shifter(
+ga25_shifter shifter(
     .clk(clk),
     .ce_pix(ce_pix),
 

@@ -11,9 +11,9 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/jtframe_frac_cen.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/jtframe_resync.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/pause.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/ga25.sv
-set_global_assignment -name SYSTEMVERILOG_FILE rtl/ga23_sdram.sv
-set_global_assignment -name SYSTEMVERILOG_FILE rtl/ga23_shifter.sv
-set_global_assignment -name SYSTEMVERILOG_FILE rtl/ga23_layer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/ga25_sdram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/ga25_shifter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/ga25_layer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/ga20.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/ga20_cache.sv

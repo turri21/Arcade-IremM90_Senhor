@@ -18,7 +18,7 @@
 
 import board_pkg::*;
 
-module ga23_sdram(
+module ga25_sdram(
     input clk,
     input clk_ram,
 

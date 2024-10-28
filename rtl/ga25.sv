@@ -108,7 +108,7 @@ wire [31:0] rom_data[2];
 wire        rom_req[2];
 wire        rom_rdy[2];
 
-ga23_sdram sdram(
+ga25_sdram sdram(
     .clk(clk),
     .clk_ram(clk_ram),
 
@@ -324,7 +324,7 @@ generate
         wire [9:0] _rowscroll = paused ? control_restore[i][9:0] : rowscroll[i];
 
 
-        ga23_layer layer(
+        ga25_layer layer(
             .clk(clk),
             .ce_pix(ce_pix),
 

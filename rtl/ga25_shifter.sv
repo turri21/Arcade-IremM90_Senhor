@@ -16,7 +16,7 @@
 //  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //============================================================================
 
-module ga23_shifter(
+module ga25_shifter(
     input clk,
     input ce_pix,
 
