@@ -20,8 +20,8 @@ module GA25(
     input clk,
     input clk_ram,
 
-    input ce,
-    input ce_pix,
+    input ce, // 13.33MHz
+    output ce_pix, // 6.66MHz
 
     input paused,
 
@@ -75,8 +75,6 @@ reg [9:0] hcnt, vcnt;
 reg vpulse, hpulse;
 
 wire [9:0] VE = vcnt ^ {1'b0, {9{NL}}};
-
-
 
 always_ff @(posedge clk) begin
     bit _hblank, _vblank;
@@ -134,14 +132,12 @@ ga25_sdram sdram(
 );
 
 //// MEMORY ACCESS
-reg [2:0] mem_cyc;
-reg [3:0] rs_cyc;
-reg busy_we;
+reg [3:0] mem_cyc;
 
 reg [9:0] x_ofs[2], y_ofs[2];
 reg [7:0] control[2];
 reg [9:0] rowscroll[2];
-reg [9:0] rowselect[4];
+reg [9:0] rowselect[2];
 
 wire [14:0] layer_vram_addr[2];
 reg layer_load[2];
@@ -150,7 +146,7 @@ wire [7:0] layer_color[2];
 wire layer_enabled[2];
 reg [15:0] vram_latch;
 
-reg [1:0] cpu_access_st;
+reg [1:0] cpu_access_rq;
 reg cpu_access_we;
 reg [15:0] cpu_access_din;
 
@@ -159,16 +155,18 @@ reg [47:0] control_save_1[512];
 
 reg [47:0] control_restore[2];
 
-reg rowscroll_active, rowscroll_pending;
+reg rowscroll_active;
 
-assign busy = |cpu_access_st;
+assign busy = |cpu_access_rq;
 reg prev_access;
+
+assign ce_pix = ce & ~mem_cyc[0];
 
 always_ff @(posedge clk) begin
     bit [9:0] rs_y;
     if (reset) begin
         mem_cyc <= 0;
-        cpu_access_st <= 2'd0;
+        cpu_access_rq <= 2'd0;
         vram_we <= 0;
         
         // layer regs
@@ -176,13 +174,12 @@ always_ff @(posedge clk) begin
         y_ofs[0] <= 10'd0; y_ofs[1] <= 10'd0;
         control[0] <= 8'd0; control[1] <= 8'd0;
 
-        rowscroll_pending <= 0;
         rowscroll_active <= 0;
 
     end else begin
         prev_access <= mem_cs & (mem_rd | mem_wr);
         if (mem_cs & (mem_rd | mem_wr) & ~busy & ~prev_access) begin
-            cpu_access_st <= 2'd1;
+            cpu_access_rq <= 2'd2;
             cpu_access_we <= mem_wr;
             cpu_access_din <= cpu_din;
         end
@@ -190,102 +187,116 @@ always_ff @(posedge clk) begin
         vram_we <= 0;
 
         if (ce) begin
+            mem_cyc <= mem_cyc + 4'd1;
             if (ce_pix) begin
                 layer_load[0] <= 0; layer_load[1] <= 0;
-                mem_cyc <= mem_cyc + 3'd1;
+
+                //prio_out <= layer_prio[0] | layer_prio[1] | layer_prio[2] | layer_prio[3];
+
+                // determine base opaque color
+                color_out <= layer_color[1];
+
+                // override with transparent
+                if (|layer_color[0][3:0]) begin
+                    color_out <= layer_color[0];
+                end
 
                 if (hpulse) begin
-                    mem_cyc <= 3'd7;
-                    rowscroll_pending <= 1;
+                    mem_cyc <= 4'd15; // NOTE: this should be true already except for the first cycles after reset
+                    rowscroll_active <= 1;
                 end
             end
 
-            if (rowscroll_active) begin
-                rs_cyc <= rs_cyc + 4'd1;
-                case(rs_cyc)
-                0: begin
-                    rs_y = y_ofs[0] + VE;
-                    vram_addr <= 15'h7800 + rs_y;
+            case(mem_cyc)
+                4'd0: begin
+                    if (rowscroll_active) begin
+                        rs_y = y_ofs[0] + VE;
+                        vram_addr <= 15'h7800 + rs_y;
+                    end else begin
+                        vram_addr <= layer_vram_addr[0];
+                    end
                 end
-                1: rowscroll[0] <= vram_q[9:0];
-                2: begin
-                    rs_y = y_ofs[1] + VE;
-                    vram_addr <= 15'h7a00 + rs_y;
+                4'd1: begin
+                    if (rowscroll_active) begin
+                        rowscroll[0] <= vram_q[9:0];
+                    end else begin
+                        vram_latch <= vram_q;
+                    end
                 end
-                3: rowscroll[1] <= vram_q[9:0];
-                8: begin
-                    rs_y = y_ofs[0] + VE;
-                    vram_addr <= 15'h7c00 + { VE[7], VE[6:0] };
+                4'd2: begin
+                    if (rowscroll_active) begin
+                        vram_addr <= 15'h7c00 + VE[7:0];
+                    end else begin
+                        vram_addr <= layer_vram_addr[0] | 15'd1;
+                        layer_load[0] <= 1;
+                    end
                 end
-                9: rowselect[0] <= vram_q[9:0];
-                10: begin
-                    rs_y = y_ofs[1] + VE;
-                    vram_addr <= 15'h7e00 + { VE[7], VE[6:0] };
+                4'd3: begin
+                    if (rowscroll_active) begin
+                        rowselect[0] <= vram_q[9:0];
+                    end
                 end
-                11: rowselect[1] <= vram_q[9:0];
-                15: begin
+                4'd4: begin
+                    // sprite load
+                end
+                4'd5: begin
+                    // sprite do
+                end
+                4'd6: begin
+                    // sprite load
+                end
+                4'd7: begin
+                    // sprite do
+                end
+                4'd8: begin
+                    if (rowscroll_active) begin
+                        rs_y = y_ofs[1] + VE;
+                        vram_addr <= 15'h7a00 + rs_y;
+                    end else begin
+                        vram_addr <= layer_vram_addr[1];
+                    end
+                end
+                4'd9: begin
+                    if (rowscroll_active) begin
+                        rowscroll[1] <= vram_q[9:0];
+                    end else begin
+                        vram_latch <= vram_q;
+                    end
+                end
+                4'd10: begin
+                    if (rowscroll_active) begin
+                        vram_addr <= 15'h7e00 + VE[7:0];
+                    end else begin
+                        vram_addr <= layer_vram_addr[1] | 15'd1;
+                        layer_load[1] <= 1;
+                    end
+                end
+                4'd11: begin
+                    if (rowscroll_active) begin
+                        rowselect[1] <= vram_q[9:0];
+                    end
                     rowscroll_active <= 0;
                 end
-                default: begin end
-                endcase
- 
-            end else begin
-                if (ce_pix) begin
-                    case(mem_cyc)
-                        3'd0: begin
-                            vram_addr <= layer_vram_addr[0];
-                        end
-                        3'd2: begin
-                            vram_addr <= layer_vram_addr[1];
-                        end
-                        default: begin
-                            if (cpu_access_st == 2'd1) begin
-                                vram_addr <= addr[15:1];
-                                vram_we <= cpu_access_we;
-                                vram_data <= cpu_access_din;
-                                cpu_access_st <= 2'd2;
-                            end
-                        end
-                    endcase
-
-                    //prio_out <= layer_prio[0] | layer_prio[1] | layer_prio[2] | layer_prio[3];
-
-                    // determine base opaque color
-                    color_out <= layer_color[1];
-
-                    // override with transparent
-                    if (|layer_color[0][3:0]) begin
-                        color_out <= layer_color[0];
-                    end
-
-                end else if (ce) begin
-                    case(mem_cyc)
-                        3'd1: begin
-                            vram_addr[0] <= 1;
-                            vram_latch <= vram_q;
-                            layer_load[0] <= 1;
-                        end
-                        3'd3: begin
-                            vram_addr[0] <= 1;
-                            vram_latch <= vram_q;
-                            layer_load[1] <= 1;
-                        end
-                        default: begin
-                            if (cpu_access_st == 2'd2) begin
-                                cpu_access_st <= 2'd0;
-                                cpu_access_we <= 0;
-                                cpu_dout <= vram_q;
-                            end
-                            
-                            if (rowscroll_pending && cpu_access_st == 2'd0) begin
-                                rowscroll_pending <= 0;
-                                rowscroll_active <= 1;
-                                rs_cyc <= 4'd0;
-                            end
-                        end
-                    endcase
+                4'd12: begin
+                    // sprite load
                 end
-            end
+                4'd13: begin
+                    // sprite do
+                end
+                4'd14: begin
+                    vram_addr <= addr[15:1];
+                    vram_we <= cpu_access_we;
+                    vram_data <= cpu_access_din;
+                    if (cpu_access_rq == 2'd2) cpu_access_rq <= 2'd1;
+                end
+                4'd15: begin
+                    cpu_dout <= vram_q;
+                    if (cpu_access_rq == 2'd1) begin
+                        cpu_access_rq <= 2'd0;
+                        cpu_access_we <= 0;
+                    end
+                end
+            endcase
         end
 
         if (io_wr) begin

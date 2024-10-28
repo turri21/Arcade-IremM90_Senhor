@@ -25,7 +25,7 @@ module m90 (
     input clk_ram,
 
     input reset_n,
-    output reg ce_pix,
+    output ce_pix,
 
     input board_cfg_t board_cfg,
     
@@ -141,7 +141,7 @@ jtframe_frac_cen #(2) pixel_cen
     .cen_in(1),
     .n(10'd1),
     .m(10'd3),
-    .cen({ce_pix, ce_13m})
+    .cen({ce_6m, ce_13m})
 );
 
 wire ce_9m, ce_18m;
