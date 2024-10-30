@@ -23,29 +23,29 @@ module linebuf(
 
     input [9:0] scan_pos,
     input scan_active,
-    output [11:0] scan_out,
+    output [7:0] scan_out,
 
-    input [11:0] color0,
-    input [11:0] color1,
+    input [7:0] color0,
+    input [7:0] color1,
     input [9:0] draw_pos,
     input draw_we
 );
 
-wire [11:0] scan_odd, scan_even;
+wire [7:0] scan_odd, scan_even;
 assign scan_out = scan_pos[0] ? scan_odd : scan_even;
 
-wire [11:0] odd_color = draw_pos[0] ? color0 : color1;
-wire [11:0] even_color = draw_pos[0] ? color1 : color0;
+wire [7:0] odd_color = draw_pos[0] ? color0 : color1;
+wire [7:0] even_color = draw_pos[0] ? color1 : color0;
 wire [8:0] odd_addr = draw_pos[9:1];
 wire [8:0] even_addr = draw_pos[0] ? draw_pos[9:1] + 9'd1 : draw_pos[9:1];
 
-dualport_ram #(.widthad(9), .width(12)) buffer_odd
+dualport_ram #(.widthad(9), .width(8)) buffer_odd
 (
     .clock_a(clk),
     .address_a(scan_pos[9:1]),
     .q_a(scan_odd),
     .wren_a(scan_active & ce_pix & scan_pos[0]),
-    .data_a(12'd0),
+    .data_a(8'd0),
 
     .clock_b(clk),
     .address_b(odd_addr),
@@ -54,13 +54,13 @@ dualport_ram #(.widthad(9), .width(12)) buffer_odd
     .q_b()
 );
 
-dualport_ram #(.widthad(9), .width(12)) buffer_even
+dualport_ram #(.widthad(9), .width(8)) buffer_even
 (
     .clock_a(clk),
     .address_a(scan_pos[9:1]),
     .q_a(scan_even),
     .wren_a(scan_active & ce_pix & ~scan_pos[0]),
-    .data_a(12'd0),
+    .data_a(8'd0),
 
     .clock_b(clk),
     .address_b(even_addr),
@@ -79,12 +79,11 @@ module double_linebuf(
 
     input [9:0] scan_pos,
     input scan_toggle,
-    output [11:0] scan_out,
+    output [7:0] scan_out,
 
     input [63:0] bitplanes,
     input flip,
-    input [6:0] color,
-    input prio,
+    input [3:0] color,
     input [9:0] pos,
     input we,
 
@@ -94,8 +93,8 @@ module double_linebuf(
 wire [11:0] scan_out_0, scan_out_1;
 assign scan_out = scan_toggle ? scan_out_0 : scan_out_1;
 
-reg [11:0] color0;
-reg [11:0] color1;
+reg [7:0] color0;
+reg [7:0] color1;
 reg [9:0] draw_pos;
 reg draw_we = 0;
 
@@ -154,14 +153,13 @@ assign idle = count == 4'd0;
 always_ff @(posedge clk) begin
     reg [63:0] bits_r;
     bit [63:0] bits;
-    reg [6:0] color_r;
-    reg prio_r;
+    reg [3:0] color_r;
 
     draw_we <= 0;
 
     if (count != 4'd0) begin
-        color0 <= { prio_r, color_r, bits_r[63], bits_r[47], bits_r[31], bits_r[15] };
-        color1 <= { prio_r, color_r, bits_r[62], bits_r[46], bits_r[30], bits_r[14] };
+        color0 <= { color_r, bits_r[63], bits_r[47], bits_r[31], bits_r[15] };
+        color1 <= { color_r, bits_r[62], bits_r[46], bits_r[30], bits_r[14] };
         draw_pos <= draw_pos + 10'd2;
         draw_we <= 1;
 
@@ -173,14 +171,13 @@ always_ff @(posedge clk) begin
     if (we) begin
         bits = deswizzle(bitplanes, flip);
         
-        color0 <= { prio, color, bits[63], bits[47], bits[31], bits[15] };
-        color1 <= { prio, color, bits[62], bits[46], bits[30], bits[14] };
+        color0 <= { color, bits[63], bits[47], bits[31], bits[15] };
+        color1 <= { color, bits[62], bits[46], bits[30], bits[14] };
         draw_we <= 1;
         draw_pos <= pos;
 
         bits_r <= { bits[61:0], 2'b00 };
         color_r <= color;
-        prio_r <= prio;
 
         count <= 4'd7;
     end

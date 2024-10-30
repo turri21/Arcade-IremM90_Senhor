@@ -1,0 +1,34 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"command": "make",
+			"problemMatcher": [
+				{
+					"fileLocation": ["absolute"],
+					"severity": "error",
+					"owner": "quartus",
+					"pattern": {
+						"regexp": "^Error \\(\\d+\\):(.*)File: (.*) Line: (\\d+)$",
+						"file": 2,
+						"line": 3,
+						"message": 1
+					}
+				}
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"clear": false,
+				"revealProblems": "onProblem"
+			},
+			"label": "Make"
+		}
+	]
+}

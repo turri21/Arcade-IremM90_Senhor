@@ -346,9 +346,9 @@ wire [63:0] sdr_sprite_dout;
 wire [24:0] sdr_sprite_addr;
 wire sdr_sprite_req, sdr_sprite_rdy, sdr_sprite_refresh;
 
-wire [31:0] sdr_bg_dout;
+wire [63:0] sdr_bg_dout;
 wire [24:0] sdr_bg_addr;
-wire sdr_bg_req, sdr_bg_rdy;
+wire sdr_bg_req, sdr_bg_rdy, sdr_bg_64bit;
 
 wire [63:0] sdr_audio_dout;
 wire [24:0] sdr_audio_addr;
@@ -393,6 +393,7 @@ sdram sdram
     .ch1_dout(sdr_bg_dout),
     .ch1_req(sdr_bg_req),
     .ch1_ready(sdr_bg_rdy),
+    .ch1_64bit(sdr_bg_64bit),
 
     .ch2_addr(sdr_sprite_addr[24:1]),
     .ch2_dout(sdr_sprite_dout),
@@ -573,6 +574,7 @@ m90 m90(
     .sdr_bg_dout(sdr_bg_dout),
     .sdr_bg_req(sdr_bg_req),
     .sdr_bg_rdy(sdr_bg_rdy),
+    .sdr_bg_64bit(sdr_bg_64bit),
 
     .sdr_cpu_dout(sdr_cpu_dout),
     .sdr_cpu_addr(sdr_cpu_addr),

@@ -67,9 +67,10 @@ module m90 (
     output sdr_sprite_refresh,
 
     output [24:0] sdr_bg_addr,
-    input [31:0] sdr_bg_dout,
+    input [63:0] sdr_bg_dout,
     output sdr_bg_req,
     input sdr_bg_rdy,
+    output sdr_bg_64bit,
 
     output reg [24:0] sdr_cpu_addr,
     input [63:0] sdr_cpu_dout,
@@ -134,6 +135,7 @@ always @(posedge clk_sys) begin
 end
 
 
+wire ce_6m;
 wire ce_13m;
 jtframe_frac_cen #(2) pixel_cen
 (
@@ -397,6 +399,7 @@ GA25 ga25(
     .sdr_addr(sdr_bg_addr),
     .sdr_req(sdr_bg_req),
     .sdr_rdy(sdr_bg_rdy),
+    .sdr_64bit(sdr_bg_64bit),
 
     .vblank(vblank),
     .hblank(hblank),

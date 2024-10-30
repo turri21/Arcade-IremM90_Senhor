@@ -70,21 +70,23 @@ reg [3:0] cnt;
 reg [1:0] prio;
 reg [3:0] palette;
 reg flip_x;
-wire flip_y = attrib[10];
+wire flip_y = attrib[7];
 reg [2:0] offset;
 
 always_ff @(posedge clk) begin
+    bit [21:0] addr;
     sdr_req <= 0;
 
     if (ce_pix) begin
         cnt <= cnt + 4'd1;
         if (load & enabled) begin
             cnt <= 4'd0;
-            sdr_addr <= { 1'b0, index, flip_y ? ~y[2:0] : y[2:0], 2'b00 };
+            addr = { 1'b0, index, flip_y ? ~y[2:0] : y[2:0], 2'b00 };
+            sdr_addr <= {addr[21:7], addr[5:2], addr[6], addr[1:0]}; // Swizzle address for 64-bit sprite layout
             sdr_req <= 1;
             palette <= attrib[3:0];
             prio <= attrib[5:4];
-            flip_x <= attrib[9] ^ NL;
+            flip_x <= attrib[6] ^ NL;
             offset <= x[2:0] ^ {3{NL}};
         end
     end

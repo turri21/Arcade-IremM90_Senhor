@@ -45,6 +45,7 @@ module GA25(
     output [24:0] sdr_addr,
     output sdr_req,
     input sdr_rdy,
+    output sdr_64bit,
 
     output reg vblank,
     output reg vsync,
@@ -106,6 +107,11 @@ wire [31:0] rom_data[2];
 wire        rom_req[2];
 wire        rom_rdy[2];
 
+wire [21:0] obj_gfx_addr;
+wire [63:0] obj_gfx_data;
+wire        obj_gfx_req;
+wire        obj_gfx_rdy;
+
 ga25_sdram sdram(
     .clk(clk),
     .clk_ram(clk_ram),
@@ -120,15 +126,16 @@ ga25_sdram sdram(
     .req_b(rom_req[1]),
     .rdy_b(rom_rdy[1]),
 
-    .addr_c(0),
-    .data_c(),
-    .req_c(0),
-    .rdy_c(),
+    .addr_c(obj_gfx_addr),
+    .data_c(obj_gfx_data),
+    .req_c(obj_gfx_req),
+    .rdy_c(obj_gfx_rdy),
 
-    .sdr_addr(sdr_addr),
-    .sdr_data(sdr_data),
-    .sdr_req(sdr_req),
-    .sdr_rdy(sdr_rdy)
+    .sdr_addr,
+    .sdr_data,
+    .sdr_req,
+    .sdr_rdy,
+    .sdr_64bit,
 );
 
 //// MEMORY ACCESS
@@ -138,6 +145,7 @@ reg [9:0] x_ofs[2], y_ofs[2];
 reg [7:0] control[2];
 reg [9:0] rowscroll[2];
 reg [9:0] rowselect[2];
+reg [7:0] vid_ctrl;
 
 wire [14:0] layer_vram_addr[2];
 reg layer_load[2];
@@ -161,6 +169,12 @@ assign busy = |cpu_access_rq;
 reg prev_access;
 
 assign ce_pix = ce & ~mem_cyc[0];
+
+
+reg [47:0] obj_data;
+reg [7:0] obj_color;
+reg [2:0] obj_sel;
+reg [14:0] obj_addr;
 
 always_ff @(posedge clk) begin
     bit [9:0] rs_y;
@@ -188,22 +202,32 @@ always_ff @(posedge clk) begin
 
         if (ce) begin
             mem_cyc <= mem_cyc + 4'd1;
+            obj_sel <= 3'b000;
+
             if (ce_pix) begin
                 layer_load[0] <= 0; layer_load[1] <= 0;
 
-                //prio_out <= layer_prio[0] | layer_prio[1] | layer_prio[2] | layer_prio[3];
+                color_out <= 11'd0;
 
-                // determine base opaque color
-                color_out <= layer_color[1];
-
-                // override with transparent
-                if (|layer_color[0][3:0]) begin
-                    color_out <= layer_color[0];
+                if (~vid_ctrl[2]) begin
+                    color_out <= |layer_color[0][3:0] ? { 3'd0, layer_color[0] } : { 3'd0, layer_color[1] };
+                    if (|obj_color[3:0]) begin
+                        if (~layer_prio[0] & ~layer_prio[1]) begin
+                            color_out <= { 3'd1, obj_color };
+                        end else begin
+                            if (vid_ctrl[0] & ~obj_color[7]) begin
+                                color_out <= { 3'd1, obj_color };
+                            end else if (vid_ctrl[1] & ~&obj_color[7:6]) begin
+                                color_out <= { 3'd1, obj_color };
+                            end
+                        end
+                    end
                 end
 
                 if (hpulse) begin
                     mem_cyc <= 4'd15; // NOTE: this should be true already except for the first cycles after reset
                     rowscroll_active <= 1;
+                    obj_addr <= 15'h7700;
                 end
             end
 
@@ -237,16 +261,20 @@ always_ff @(posedge clk) begin
                     end
                 end
                 4'd4: begin
-                    // sprite load
+                    vram_addr <= obj_addr;
                 end
                 4'd5: begin
-                    // sprite do
+                    obj_data[15:0] <= vram_q;
+                    obj_sel[0] <= 1;
+                    obj_addr <= obj_addr + 15'd1;
                 end
                 4'd6: begin
-                    // sprite load
+                    vram_addr <= obj_addr;
                 end
                 4'd7: begin
-                    // sprite do
+                    obj_data[31:16] <= vram_q;
+                    obj_sel[1] <= 1;
+                    obj_addr <= obj_addr + 15'd1;
                 end
                 4'd8: begin
                     if (rowscroll_active) begin
@@ -278,10 +306,12 @@ always_ff @(posedge clk) begin
                     rowscroll_active <= 0;
                 end
                 4'd12: begin
-                    // sprite load
+                    vram_addr <= obj_addr;
                 end
                 4'd13: begin
-                    // sprite do
+                    obj_data[47:32] <= vram_q;
+                    obj_sel[2] <= 1;
+                    obj_addr <= obj_addr + 15'd1;
                 end
                 4'd14: begin
                     vram_addr <= addr[15:1];
@@ -309,6 +339,8 @@ always_ff @(posedge clk) begin
             
             'h8a: control[0] <= cpu_din[7:0];
             'h8c: control[1] <= cpu_din[7:0];
+
+            'h8e: vid_ctrl <= cpu_din[7:0];
             endcase
         end
 
@@ -322,6 +354,31 @@ always_ff @(posedge clk) begin
     end
 end
 
+ga25_obj ga25_obj(
+    .clk,
+    .clk_ram,
+    .ce,
+    .ce_pix,
+    
+    .reset,
+
+    .color(obj_color),
+
+    .NL,
+    .hpulse,
+    .vpulse,
+
+    .obj_in(obj_data),
+    .obj_sel(obj_sel),
+
+    .sdr_data(obj_gfx_data),
+    .sdr_addr(obj_gfx_addr),
+    .sdr_req(obj_gfx_req),
+    .sdr_rdy(obj_gfx_rdy),
+    .sdr_refresh(),
+
+    .dbg_solid_sprites(0)
+);
 
 
 //// LAYERS

@@ -33,21 +33,22 @@ module ga25_sdram(
     output reg rdy_b,
 
     input [21:0] addr_c,
-    output reg [31:0] data_c,
+    output reg [63:0] data_c,
     input req_c,
     output reg rdy_c,
 
     output reg [24:0] sdr_addr,
-    input [31:0] sdr_data,
+    input [63:0] sdr_data,
     output reg sdr_req,
-    input sdr_rdy
+    input sdr_rdy,
+    output reg sdr_64bit
 );
 
 reg [1:0] active = 0;
 
 reg active_rq = 0;
 reg active_ack = 0;
-reg [31:0] active_data;
+reg [63:0] active_data;
 
 reg req_a_2 = 0;
 reg req_b_2 = 0;
@@ -79,12 +80,12 @@ always @(posedge clk) begin
         if (active_ack == active_rq) begin
             active <= 0;
             if (active == 2'd1) begin
-                data_a <= active_data;
+                data_a <= active_data[31:0];
                 rdy_a <= 1;
             end
 
             if (active == 2'd2) begin
-                data_b <= active_data;
+                data_b <= active_data[31:0];
                 rdy_b <= 1;
             end
 
@@ -97,18 +98,21 @@ always @(posedge clk) begin
         if (req_a_2) begin
             sdr_addr <= addr_a_2;
             sdr_req <= 1;
+            sdr_64bit <= 0;
             active_rq <= ~active_rq;
             active <= 2'd1;
             req_a_2 <= 0;
         end else if (req_b_2) begin
             sdr_addr <= addr_b_2;
             sdr_req <= 1;
+            sdr_64bit <= 0;
             active_rq <= ~active_rq;
             active <= 2'd2;
             req_b_2 <= 0;
         end else if (req_c_2) begin
             sdr_addr <= addr_c_2;
             sdr_req <= 1;
+            sdr_64bit <= 1;
             active_rq <= ~active_rq;
             active <= 2'd3;
             req_c_2 <= 0;

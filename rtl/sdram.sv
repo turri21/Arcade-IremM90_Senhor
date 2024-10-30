@@ -38,9 +38,10 @@ module sdram
     output            SDRAM_CLK,   // clock for chip
 
     input      [26:1] ch1_addr,    // 25 bit address for 8bit mode. addr[0] = 0 for 16bit mode for correct operations.
-    output reg [31:0] ch1_dout,    // data output to cpu
+    output reg [63:0] ch1_dout,    // data output to cpu
     input             ch1_req,     // request
     output reg        ch1_ready,
+    input             ch1_64bit,
     
     input      [26:1] ch2_addr,    
     output reg [63:0] ch2_dout,    
@@ -160,7 +161,13 @@ always @(posedge clk) begin
 
     if(data_ready_delay1[4]) ch1_dout[15:00] <= dq_reg;
     if(data_ready_delay1[3]) ch1_dout[31:16] <= dq_reg;
-    if(data_ready_delay1[3]) ch1_ready <= 1;
+    if (ch1_64bit) begin
+        if(data_ready_delay1[2]) ch1_dout[47:32] <= dq_reg;
+        if(data_ready_delay1[1]) ch1_dout[63:48] <= dq_reg;
+        if(data_ready_delay1[1]) ch1_ready <= 1;
+    end else begin
+        if(data_ready_delay1[3]) ch1_ready <= 1;
+    end
 
     if(data_ready_delay2[4]) ch2_dout[15:00] <= dq_reg;
     if(data_ready_delay2[3]) ch2_dout[31:16] <= dq_reg;
