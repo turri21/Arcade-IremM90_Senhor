@@ -15,6 +15,17 @@
 						"line": 3,
 						"message": 1
 					}
+				},
+				{
+					"fileLocation": ["absolute"],
+					"severity": "error",
+					"owner": "quartus",
+					"pattern": {
+						"regexp": "^Warning \\(10236\\):(.*)File: (.*) Line: (\\d+)$",
+						"file": 2,
+						"line": 3,
+						"message": 1
+					}
 				}
 			],
 			"group": {

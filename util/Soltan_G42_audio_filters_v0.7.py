@@ -10,8 +10,7 @@ from scipy import signal
 #  suffix to .txt and .png files, set to '_py' to avoid overriding original filters
 SUFFIX = '' 
 
-# standard sampling rate of 7Mhz, used by most filters
-SR_7MHZ = 7056000
+SR_7MHZ = 3579545
 
 # --------------------------------------------------------------------------- #
 
@@ -105,8 +104,8 @@ tf = []
 
 # --------------------------------------------------------------------------- #
 
-addCombinedFilter("pcm_filter", "Low pass filter for PCM output", 10749, 9685, fs= 3579545)
-addCombinedFilter("fm_filter", "Low pass filter for YM2151 output", 19020, 8707, fs = 3579545)
+addSingleFilter('M90 Samples', '3500hz 2nd order', hz=3500, order=2)
+addCombinedFilter('M90 FM', '9000hz 1st order, 10000hz 2nd order', hz1=9000, hz2=10000)
 
 
 # --------------------------------------------------------------------------- #

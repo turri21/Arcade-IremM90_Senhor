@@ -1,5 +1,7 @@
 //============================================================================
-//  Copyright (C) 2023 Martin Donlon
+//  Irem M72 for MiSTer FPGA - Z80-based sound system
+//
+//  Copyright (C) 2022 Martin Donlon
 //
 //  This program is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU General Public License as published by the Free
@@ -16,190 +18,274 @@
 //  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //============================================================================
 
-module sound(
-    input clk_sys, // 40M
+
+/*
+void m90_state::m90_sound_cpu_map(address_map &map)
+{
+	map(0x0000, 0xefff).rom();
+	map(0xf000, 0xffff).ram();
+}
+
+void m90_state::m90_sound_cpu_io_map(address_map &map)
+{
+	map.global_mask(0xff);
+	map(0x00, 0x01).rw("ymsnd", FUNC(ym2151_device::read), FUNC(ym2151_device::write));
+	map(0x80, 0x80).r("soundlatch", FUNC(generic_latch_8_device::read));
+	map(0x80, 0x81).w(m_audio, FUNC(m72_audio_device::rtype2_sample_addr_w));
+	map(0x82, 0x82).w(m_audio, FUNC(m72_audio_device::sample_w));
+	map(0x83, 0x83).w("soundlatch", FUNC(generic_latch_8_device::acknowledge_w));
+	map(0x84, 0x84).r(m_audio, FUNC(m72_audio_device::sample_r));
+}
+*/
+
+import board_pkg::*;
+
+module sound (
+    input clk, // 40M
+
     input reset,
 
-    input [1:0] sample_attn,
+    input latch_wr,
+    input [7:0] latch_din,
 
     input paused,
 
-    input latch_wr,
-    input latch_rd,
+    output [15:0] sound_out,
 
-    input [7:0] latch_din,
-    output [7:0] latch_dout,
-    output latch_rdy,
-
-    // ioctl load
-    input [19:0] rom_addr,
-    input [7:0] rom_data,
-    input rom_wr,
-
-    input [7:0] secure_addr,
-    input [7:0] secure_data,
-    input secure_wr,
-
-    output reg [15:0] sample,
-
-    // sdr
-    input clk_ram,
-    output [24:0] sdr_addr,
-    input [63:0] sdr_data,
-    output sdr_req,
-    input sdr_rdy
+    // ioctl
+    input bram_wr,
+    input [7:0] bram_data,
+    input [19:0] bram_addr,
+    input bram_z80_cs,
+    input bram_sample_cs
 );
 
 
-wire [15:0] sample_out, fm_sample, fm_sample_flt;
-
-localparam OVERALL_GAIN = 0.9;
-wire [11:0] fm_scale = int'(2.6 * OVERALL_GAIN * 128);
-wire [11:0] pcm_scale = sample_attn == 3 ? int'(0.66 * OVERALL_GAIN * 128)
-                      : sample_attn == 2 ? int'(0.95 * OVERALL_GAIN * 128)
-                      : sample_attn == 1 ? int'(1.34 * OVERALL_GAIN * 128)
-                      : int'(1.9 * OVERALL_GAIN * 128);
-
-always_ff @(posedge clk_sys) begin
-    reg [27:0] sum;
-    reg [27:0] fm;
-    reg [27:0] pcm;
-
-    fm  <= $signed(fm_sample_flt) * fm_scale;
-    pcm <= $signed(sample_out)    * pcm_scale;
-
-    sum <= fm + pcm;
-    if (&sum[27:22] || &(~sum[27:22])) sample <= sum[22:7];
-    else if (sum[27]) sample <= 16'h8000;
-    else sample <= 16'h7fff; 
-end
-
-wire ce_28m, ce_14m, ce_7m, ce_3_5m, ce_1_7m;
-jtframe_frac_cen #(6) pixel_cen
+wire ce_1_7m, ce_3_5m;
+jtframe_frac_cen #(2) jt51_cen
 (
-    .clk(clk_sys),
+    .clk(clk),
     .cen_in(~paused),
     .n(10'd63),
-    .m(10'd88),
-    .cen({ce_1_7m, ce_3_5m, ce_7m, ce_14m, ce_28m})
+    .m(10'd704),
+    .cen({ce_1_7m, ce_3_5m})
 );
 
-wire ram_cs, rom_cs, io_cs;
-wire ym2151_cs, ga20_cs, snd_latch_cs, main_latch_cs;
-wire [1:0] cpu_be;
-wire [15:0] cpu_dout, cpu_din;
-wire [19:0] cpu_addr;
-wire [15:0] rom_dout, ram_dout;
-wire cpu_rd, cpu_wr;
 
-wire [7:0] ym2151_dout;
-wire ym2151_irq_n;
+wire [7:0] ram_rom_dout;
 
-wire [7:0] ga20_dout;
+wire ram_write = &z80_addr[15:12] & ~z80_mreq_n & ~z80_wr_n;
 
-reg [7:0] main_latch, snd_latch;
-reg main_latch_rdy, snd_latch_rdy;
+singleport_ram #(.widthad(16), .width(8), .name("SND")) sound_ram_rom(
+    .clock(clk),
+    .address(bram_z80_cs ? bram_addr[15:0] : z80_addr),
+    .q(ram_rom_dout),
+    .wren((bram_z80_cs & bram_wr) | ram_write),
+    .data(bram_z80_cs ? bram_data : z80_dout)
+);
 
-assign latch_rdy = main_latch_rdy;
-assign latch_dout = main_latch;
+reg [17:0] sample_addr;
+wire [7:0] sample_data;
+
+singleport_ram #(.widthad(17), .width(8), .name("SAM")) sample_rom(
+    .clock(clk),
+    .address(bram_sample_cs ? bram_addr[15:0] : sample_addr[16:0]),
+    .q(sample_data),
+    .wren((bram_sample_cs & bram_wr)),
+    .data(bram_data)
+);
+
+wire [7:0] ym_dout;
+
+wire ym_cs = ~z80_iorq_n & ~|z80_addr[7:1];
+wire ym_irq_n;
+
+wire z80_iorq_n, z80_rd_n, z80_wr_n, z80_mreq_n, z80_m1_n;
+
+wire [15:0] z80_addr;
+wire [7:0] z80_din;
+wire [7:0] z80_dout;
+
+always_comb begin
+    z80_din = 8'hff;
+    if ( ~z80_m1_n & ~z80_iorq_n ) begin
+        z80_din = {2'b11, ~snd_latch_ready, ym_irq_n, 4'b1111};
+    end else if ( ~z80_rd_n ) begin
+        if (ym_cs) begin
+            z80_din = ym_dout;
+        end else if (~z80_iorq_n) begin
+            casex (z80_addr[7:0])
+                8'h80: z80_din = snd_latch;
+                8'h84: z80_din = sample_data;
+                default: z80_din = 8'hff;
+            endcase
+        end else begin
+            z80_din = ram_rom_dout;
+        end
+    end
+end
+
+T80s z80(
+    .RESET_n(~reset),
+    .CLK(clk),
+    .CEN(ce_3_5m),
+
+    .INT_n(ym_irq_n & ~snd_latch_ready),
+    .NMI_n(~z80_nmi),
+
+    .M1_n(z80_m1_n),
+    .MREQ_n(z80_mreq_n),
+    .IORQ_n(z80_iorq_n),
+    .RD_n(z80_rd_n),
+    .WR_n(z80_wr_n),
+    .A(z80_addr),
+    .DI(z80_din),
+    .DO(z80_dout)
+);
+
+wire [15:0] ym_audio;
 
 jt51 ym2151(
     .rst(reset),
-    .clk(clk_sys),
+    .clk(clk),
     .cen(ce_3_5m),
     .cen_p1(ce_1_7m),
-    .cs_n(~ym2151_cs),
-    .wr_n(~cpu_wr),
-    .a0(cpu_addr[1]),
-    .din(cpu_dout[7:0]),
-    .dout(ym2151_dout),
-    .irq_n(ym2151_irq_n),
-    .xright(fm_sample),
-    .xleft()
+    .cs_n(~ym_cs),
+    .wr_n(z80_wr_n),
+    .a0(z80_addr[0]),
+    .din(z80_dout),
+    .dout(ym_dout),
+    .irq_n(ym_irq_n),
+    .xleft(ym_audio),
+    .xright()
 );
 
-// fc1 = 19020hz
-// fc2 = 8707hz
-IIR_filter #( .use_params(1), .stereo(0), .coeff_x(0.000001054852861174913), .coeff_x0(3), .coeff_x1(3), .coeff_x2(1), .coeff_y0(-2.94554610428990093496), .coeff_y1(2.89203308225615352001), .coeff_y2(-0.94647938909674766972)) lpf_ym (
-	.clk(clk_sys),
+reg [7:0] snd_latch;
+reg snd_latch_ready = 0;
+
+reg [13:0] nmi_counter = 0;
+reg z80_nmi = 0;
+reg z80_iorq_n_old;
+
+reg [7:0] sample_out;
+
+always @(posedge clk) begin
+    if (reset) begin
+        z80_nmi <= 0;
+        nmi_counter <= 0;
+        snd_latch_ready <= 0;
+    end else if (~paused) begin
+
+        // NMI frequency is 7812.5Khz
+        // On original hardware this is derived from the 32Mhz CPU clock, divided by 4096
+        // 4Mhz signal is divided by the 74LS161 counters IC71 and IC72
+        // Here since we have a 40Mhz sys_clk, we divide by 5120
+        nmi_counter <= nmi_counter + 14'd1;
+        if (nmi_counter == 14'd5119) begin
+            z80_nmi <= 1;
+            nmi_counter <= 14'd0;
+        end
+
+        if (latch_wr) begin
+            snd_latch <= latch_din;
+            snd_latch_ready <= 1;
+        end
+
+        if (~z80_m1_n && ~z80_mreq_n && z80_addr == 16'h0066)
+            z80_nmi <= 0;
+
+        z80_iorq_n_old <= z80_iorq_n;
+        if (z80_iorq_n_old & ~z80_iorq_n) begin
+            if (~z80_wr_n) begin
+                case(z80_addr[7:0])
+                8'h80: sample_addr[12:0] <= { z80_dout, 5'd0 };
+                8'h81: sample_addr[17:13] <= z80_dout[4:0];
+                8'h82: begin
+                    sample_out <= z80_dout;
+                    sample_addr <= sample_addr + 18'd1;
+                end
+                8'h83: snd_latch_ready <= 0;
+                default: begin end
+                endcase
+            end
+        end
+    end
+end
+
+wire [7:0] signed_sample = sample_out - 8'h80;
+reg [15:0] filtered_sample;
+reg [15:0] filtered_ym_audio;
+
+// 3.5Khz 2nd order low pass filter with additional 10dB attenuation
+IIR_filter #(
+    .use_params(1),
+    .stereo(0),
+    .coeff_x(0.00005223613830195753 * 0.31622776601),
+    .coeff_x0(2),
+    .coeff_x1(1),
+    .coeff_x2(0),
+    .coeff_y0(-1.99131174878388250704),
+    .coeff_y1(0.99134932873949543897),
+    .coeff_y2(0)
+    ) samples_lpf (
+	.clk(clk),
 	.reset(reset),
 
 	.ce(ce_3_5m),
 	.sample_ce(ce_3_5m),
 
-	.cx(), .cx0(), .cx1(), .cx2(), .cy0(), .cy1(), .cy2(),
+	.cx(),
+	.cx0(),
+	.cx1(),
+	.cx2(),
+	.cy0(),
+	.cy1(),
+	.cy2(),
 
-	.input_l(fm_sample),
-	.output_l(fm_sample_flt),
-
+	.input_l({signed_sample[7:0], {8{signed_sample[0]}}}),
     .input_r(),
+	.output_l(filtered_sample),
     .output_r()
 );
 
-wire [19:0] sample_addr;
-wire [7:0] sample_data;
-wire sample_valid;
-wire sample_rd;
 
-ga20_cache ga20_cache(
-    .clk(clk_sys),
-    .reset(reset),
+// 9khz 1st order, 10khz 2nd order
+IIR_filter #(
+    .use_params(1),
+    .stereo(0),
+    .coeff_x(0.00000663036349096853),
+    .coeff_x0(3),
+    .coeff_x1(3),
+    .coeff_x2(1),
+    .coeff_y0(-2.95950327886750486073),
+    .coeff_y1(2.91969995512661473214),
+    .coeff_y2(-0.96019190621343297742)
+    ) ym_lpf (
+	.clk(clk),
+	.reset(reset),
 
-    .rd(sample_rd),
-    .addr(sample_addr),
-    .valid(sample_valid),
-    .dout(sample_data),
+	.ce(ce_3_5m),
+	.sample_ce(ce_3_5m),
 
-    .clk_ram(clk_ram),
-    .sdr_addr(sdr_addr),
-    .sdr_data(sdr_data),
-    .sdr_req(sdr_req),
-    .sdr_rdy(sdr_rdy)
+	.cx(),
+	.cx0(),
+	.cx1(),
+	.cx2(),
+	.cy0(),
+	.cy1(),
+	.cy2(),
+
+	.input_l(ym_audio),
+    .input_r(),
+	.output_l(filtered_ym_audio),
+    .output_r()
 );
 
-ga20 ga20(
-    .clk(clk_sys),
-    .reset(reset),
-
-    .ce(ce_3_5m),
-
-    .cs(ga20_cs),
-    .rd(cpu_rd),
-    .wr(cpu_wr),
-    .addr(cpu_addr[5:1]),
-    .din(cpu_dout[7:0]),
-    .dout(ga20_dout),
-
-    .sample_rd(sample_rd),
-    .sample_addr(sample_addr),
-    .sample_valid(sample_valid),
-    .sample_din(sample_data),
-
-    .sample_out(sample_out)
-);
-
-always_ff @(posedge clk_sys) begin
-    if (reset) begin
-        main_latch_rdy <= 0;
-        snd_latch_rdy <= 0;
-    end else begin
-        if (latch_rd) begin
-            main_latch_rdy <= 0;
-        end
-
-        if (latch_wr) begin
-            snd_latch <= latch_din;
-            snd_latch_rdy <= 1;
-        end
-
-        if (snd_latch_cs & cpu_wr) begin
-            snd_latch_rdy <= 0;
-        end
-
-        if (main_latch_cs & cpu_wr) begin
-            main_latch <= cpu_dout[7:0];
-            main_latch_rdy <= 1;
-        end
-    end
+reg [16:0] sound_out_17bit;
+always @(posedge clk) begin 
+    sound_out_17bit <= {filtered_ym_audio[15], filtered_ym_audio[15:0]} + {filtered_sample[15], filtered_sample[15:0]};
 end
+
+assign sound_out = sound_out_17bit[16:1];
+
 endmodule

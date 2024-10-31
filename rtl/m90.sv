@@ -411,37 +411,23 @@ GA25 ga25(
     .dbg_en_layers(dbg_en_layers)
 );
 
-
 wire [15:0] sound_sample;
 sound sound(
-    .clk_sys(clk_sys),
-    .reset(sound_reset | ~reset_n),
+    .clk(clk_sys),
+    .reset(~reset_n),
 
     .paused(paused),
 
-    .sample_attn(sample_attn),
-
     .latch_wr(IOWR & cpu_word_addr[7:0] == 8'h00),
-    .latch_rd(IORD & cpu_word_addr[7:0] == 8'h08),
     .latch_din(cpu_mem_out[7:0]),
-    .latch_dout(snd_latch_dout),
-    .latch_rdy(snd_latch_rdy),
     
-    .rom_addr(bram_addr),
-    .rom_data(bram_data),
-    .rom_wr(bram_wr & bram_cs[1]),
+    .bram_addr(bram_addr),
+    .bram_data(bram_data),
+    .bram_wr(bram_wr),
+    .bram_z80_cs(bram_cs[1]),
+    .bram_sample_cs(bram_cs[2]),
 
-    .secure_addr(bram_addr[7:0]),
-    .secure_data(bram_data),
-    .secure_wr(bram_wr & bram_cs[0]),
-
-    .sample(sound_sample),
-
-    .clk_ram(clk_ram),
-    .sdr_addr(sdr_audio_addr),
-    .sdr_data(sdr_audio_dout),
-    .sdr_req(sdr_audio_req),
-    .sdr_rdy(sdr_audio_rdy)
+    .sound_out(sound_sample)
 );
 
 assign AUDIO_L = sound_sample;
