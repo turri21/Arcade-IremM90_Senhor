@@ -45,6 +45,8 @@ module sound (
 
     input reset,
 
+    input m99,
+
     input latch_wr,
     input [7:0] latch_din,
 
@@ -86,10 +88,11 @@ singleport_ram #(.widthad(16), .width(8), .name("SND")) sound_ram_rom(
 
 reg [17:0] sample_addr;
 wire [7:0] sample_data;
+reg sample_play = 0;
 
 singleport_ram #(.widthad(17), .width(8), .name("SAM")) sample_rom(
     .clock(clk),
-    .address(bram_sample_cs ? bram_addr[15:0] : sample_addr[16:0]),
+    .address(bram_sample_cs ? bram_addr[16:0] : sample_addr[16:0]),
     .q(sample_data),
     .wren((bram_sample_cs & bram_wr)),
     .data(bram_data)
@@ -97,7 +100,7 @@ singleport_ram #(.widthad(17), .width(8), .name("SAM")) sample_rom(
 
 wire [7:0] ym_dout;
 
-wire ym_cs = ~z80_iorq_n & ~|z80_addr[7:1];
+wire ym_cs = m99 ? (~z80_iorq_n && (z80_addr[7:1] == 7'b0100000)) : (~z80_iorq_n && z80_addr[7:1] == 7'b0000000);
 wire ym_irq_n;
 
 wire z80_iorq_n, z80_rd_n, z80_wr_n, z80_mreq_n, z80_m1_n;
@@ -114,11 +117,17 @@ always_comb begin
         if (ym_cs) begin
             z80_din = ym_dout;
         end else if (~z80_iorq_n) begin
-            casex (z80_addr[7:0])
-                8'h80: z80_din = snd_latch;
-                8'h84: z80_din = sample_data;
-                default: z80_din = 8'hff;
-            endcase
+            if (m99) begin
+                if (z80_addr[7:0] == 8'h42) begin
+                    z80_din = snd_latch;
+                end
+            end else begin
+                if (z80_addr[7:0] == 8'h80) begin
+                    z80_din = snd_latch;
+                end else if (z80_addr[7:0] == 8'h84) begin
+                    z80_din = sample_data;
+                end
+            end
         end else begin
             z80_din = ram_rom_dout;
         end
@@ -174,6 +183,7 @@ always @(posedge clk) begin
         z80_nmi <= 0;
         nmi_counter <= 0;
         snd_latch_ready <= 0;
+        sample_play <= 0;
     end else if (~paused) begin
 
         // NMI frequency is 7812.5Khz
@@ -182,7 +192,16 @@ always @(posedge clk) begin
         // Here since we have a 40Mhz sys_clk, we divide by 5120
         nmi_counter <= nmi_counter + 14'd1;
         if (nmi_counter == 14'd5119) begin
-            z80_nmi <= 1;
+            if (m99) begin
+                if (sample_data == 8'd0 || ~sample_play) begin
+                    sample_play <= 0;
+                end else begin
+                    sample_out <= sample_data;
+                    sample_addr <= sample_addr + 18'd1;
+                end
+            end else begin
+                z80_nmi <= 1;
+            end
             nmi_counter <= 14'd0;
         end
 
@@ -197,16 +216,29 @@ always @(posedge clk) begin
         z80_iorq_n_old <= z80_iorq_n;
         if (z80_iorq_n_old & ~z80_iorq_n) begin
             if (~z80_wr_n) begin
-                case(z80_addr[7:0])
-                8'h80: sample_addr[12:0] <= { z80_dout, 5'd0 };
-                8'h81: sample_addr[17:13] <= z80_dout[4:0];
-                8'h82: begin
-                    sample_out <= z80_dout;
-                    sample_addr <= sample_addr + 18'd1;
+                if (m99) begin
+                    case(z80_addr[7:0])
+                        8'h00: sample_addr[11:0] <= { z80_dout, 4'd0 };
+                        8'h01: sample_addr[17:12] <= z80_dout[5:0];
+                        8'h04: begin end
+                        8'h06: begin
+                            sample_play <= 1;
+                        end
+                        8'h42: snd_latch_ready <= 0;
+                        default: begin end
+                    endcase
+                end else begin
+                    case(z80_addr[7:0])
+                        8'h80: sample_addr[12:0] <= { z80_dout, 5'd0 };
+                        8'h81: sample_addr[17:13] <= z80_dout[4:0];
+                        8'h82: begin
+                            sample_out <= z80_dout;
+                            sample_addr <= sample_addr + 18'd1;
+                        end
+                        8'h83: snd_latch_ready <= 0;
+                        default: begin end
+                    endcase
                 end
-                8'h83: snd_latch_ready <= 0;
-                default: begin end
-                endcase
             end
         end
     end

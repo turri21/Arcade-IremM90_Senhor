@@ -58,14 +58,6 @@ module m90 (
 
     input cpu_turbo,
 
-    input [1:0] sample_attn,
-
-    output [24:0] sdr_sprite_addr,
-    input [63:0] sdr_sprite_dout,
-    output sdr_sprite_req,
-    input sdr_sprite_rdy,
-    output sdr_sprite_refresh,
-
     output [24:0] sdr_bg_addr,
     input [63:0] sdr_bg_dout,
     output sdr_bg_req,
@@ -76,11 +68,6 @@ module m90 (
     input [63:0] sdr_cpu_dout,
     output reg sdr_cpu_req,
     input sdr_cpu_rdy,
-
-    output [24:0] sdr_audio_addr,
-    input [63:0] sdr_audio_dout,
-    output sdr_audio_req,
-    input sdr_audio_rdy,
 
     input clk_bram,
     input bram_wr,
@@ -106,12 +93,8 @@ module m90 (
     input hs_write,
     input hs_read,
 
-    input [2:0] dbg_en_layers,
-    input dbg_solid_sprites,
-    input en_sprites,
-    input en_audio_filters,
-
-    input sprite_freeze
+    input [1:0] dbg_en_layers,
+    input dbg_solid_sprites
 );
 
 assign ioctl_upload_index = 8'd1;
@@ -146,14 +129,14 @@ jtframe_frac_cen #(2) pixel_cen
     .cen({ce_6m, ce_13m})
 );
 
-wire ce_9m, ce_18m;
+wire ce_8m, ce_16m;
 jtframe_frac_cen #(2) cpu_cen
 (
     .clk(clk_sys),
     .cen_in(1),
-    .n(10'd9),
-    .m(10'd20),
-    .cen({ce_9m, ce_18m})
+    .n(10'd2),
+    .m(10'd5),
+    .cen({ce_8m, ce_16m})
 );
 wire clock = clk_sys;
 
@@ -198,7 +181,7 @@ always @(posedge clk_sys) begin
     if (!reset_n) begin
         deferred_ce <= 16'd0;
     end else begin
-        if (ce_18m) begin
+        if (ce_16m) begin
             if (~cpu_rom_ready) begin
                 deferred_ce <= deferred_ce + 16'd1;
             end else if (|deferred_ce) begin 
@@ -208,7 +191,7 @@ always @(posedge clk_sys) begin
     end
 end
 
-wire ce_cpu = ~paused & cpu_rom_ready & (ce_18m | cpu_turbo | |deferred_ce);
+wire ce_cpu = ~paused & cpu_rom_ready & (ce_16m | cpu_turbo | |deferred_ce);
 
 wire hs_access = hs_read | hs_write;
 assign hs_dout = hs_address[0] ? cpu_ram_dout[15:8] : cpu_ram_dout[7:0];
@@ -408,7 +391,8 @@ GA25 ga25(
 
     .color_out(ga25_color),
 
-    .dbg_en_layers(dbg_en_layers)
+    .dbg_en_layers(dbg_en_layers),
+    .dbg_solid_sprites(dbg_solid_sprites)
 );
 
 wire [15:0] sound_sample;
@@ -417,6 +401,8 @@ sound sound(
     .reset(~reset_n),
 
     .paused(paused),
+
+    .m99(board_cfg.m99),
 
     .latch_wr(IOWR & cpu_word_addr[7:0] == 8'h00),
     .latch_din(cpu_mem_out[7:0]),

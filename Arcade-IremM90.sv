@@ -204,16 +204,11 @@ wire [2:0] scandoubler_fx = status[31:29];
 wire [1:0] scale = status[6:5];
 wire pause_in_osd = status[7];
 wire system_pause;
-wire cpu_turbo = status[16];
-
-wire [1:0] sample_attn = status[28:27];
 
 assign HDMI_FREEZE = 0; //system_pause;
 
-wire [2:0] dbg_en_layers = ~status[66:64];
+wire [1:0] dbg_en_layers = ~status[65:64];
 wire dbg_solid_sprites = status[67];
-wire en_sprites = 1;
-wire dbg_sprite_freeze = 0;
 
 `include "build_id.v" 
 localparam CONF_STR = {
@@ -235,17 +230,12 @@ localparam CONF_STR = {
     "-;",
     "O[8],Autosave Score Data,Off,On;",
     "-;",
-    "O[28:27],FX Volume,Normal,Medium (-3dB),Low (-6dB),Lowest (-9dB);",
-    "-;",
-    "O[16],CPU Speed,Normal,Turbo;",
-    "-;",
     "DIP;",
     "-;",
     "P2,Debug;",
     "P2-;",
     "P2O[64],Layer 1,On,Off;",
     "P2O[65],Layer 2,On,Off;",
-    "P2O[66],Layer 3,On,Off;",
     "P2O[67],Solid Sprites,Off,On;",
     "-;",
     "T[0],Reset;",
@@ -342,17 +332,9 @@ wire reset = RESET | status[0] | buttons[1] | rom_load_busy;
 ///////////////////////////////////////////////////////////////////////
 // SDRAM
 ///////////////////////////////////////////////////////////////////////
-wire [63:0] sdr_sprite_dout;
-wire [24:0] sdr_sprite_addr;
-wire sdr_sprite_req, sdr_sprite_rdy, sdr_sprite_refresh;
-
 wire [63:0] sdr_bg_dout;
 wire [24:0] sdr_bg_addr;
 wire sdr_bg_req, sdr_bg_rdy, sdr_bg_64bit;
-
-wire [63:0] sdr_audio_dout;
-wire [24:0] sdr_audio_addr;
-wire sdr_audio_req, sdr_audio_rdy;
 
 wire [63:0] sdr_cpu_dout;
 wire [24:0] sdr_cpu_addr;
@@ -385,7 +367,7 @@ board_cfg_t board_cfg;
 sdram sdram
 (
     .*,
-    .doRefresh(sdr_sprite_refresh),
+    .doRefresh(1),
     .init(~pll_locked),
     .clk(clk_ram),
 
@@ -395,10 +377,10 @@ sdram sdram
     .ch1_ready(sdr_bg_rdy),
     .ch1_64bit(sdr_bg_64bit),
 
-    .ch2_addr(sdr_sprite_addr[24:1]),
-    .ch2_dout(sdr_sprite_dout),
-    .ch2_req(sdr_sprite_req),
-    .ch2_ready(sdr_sprite_rdy),
+    .ch2_addr(0),
+    .ch2_dout(),
+    .ch2_req(0),
+    .ch2_ready(),
 
     // multiplexed with rom download and cpu read/writes
     .ch3_addr(sdr_ch3_addr[24:1]),
@@ -409,10 +391,10 @@ sdram sdram
     .ch3_req(sdr_ch3_req),
     .ch3_ready(sdr_ch3_rdy),
 
-    .ch4_addr(sdr_audio_addr[24:1]),
-    .ch4_dout(sdr_audio_dout),
-    .ch4_req(sdr_audio_req),
-    .ch4_ready(sdr_audio_rdy)
+    .ch4_addr(0),
+    .ch4_dout(),
+    .ch4_req(0),
+    .ch4_ready()
 );
 
 
@@ -564,12 +546,6 @@ m90 m90(
    
     .dip_sw({dip_sw[2], dip_sw[1], dip_sw[0]}),
 
-    .sdr_sprite_addr(sdr_sprite_addr),
-    .sdr_sprite_dout(sdr_sprite_dout),
-    .sdr_sprite_req(sdr_sprite_req),
-    .sdr_sprite_rdy(sdr_sprite_rdy),
-    .sdr_sprite_refresh(sdr_sprite_refresh),
-
     .sdr_bg_addr(sdr_bg_addr),
     .sdr_bg_dout(sdr_bg_dout),
     .sdr_bg_req(sdr_bg_req),
@@ -580,11 +556,6 @@ m90 m90(
     .sdr_cpu_addr(sdr_cpu_addr),
     .sdr_cpu_req(sdr_cpu_req),
     .sdr_cpu_rdy(sdr_cpu_rdy),
-
-    .sdr_audio_addr(sdr_audio_addr),
-    .sdr_audio_dout(sdr_audio_dout),
-    .sdr_audio_req(sdr_audio_req),
-    .sdr_audio_rdy(sdr_audio_rdy),
 
     .clk_bram(clk_sys),
     .bram_addr(bram_addr),
@@ -606,7 +577,7 @@ m90 m90(
 
     .pause_rq(system_pause),
     .cpu_paused(cpu_paused),
-    .cpu_turbo(cpu_turbo),
+    .cpu_turbo(0),
 
     .hs_address,
     .hs_din,
@@ -614,12 +585,8 @@ m90 m90(
     .hs_write,
     .hs_read,
 
-    .sample_attn(sample_attn),
-
     .dbg_en_layers(dbg_en_layers),
-    .dbg_solid_sprites(dbg_solid_sprites),
-    .en_sprites(en_sprites),
-    .sprite_freeze(dbg_sprite_freeze)
+    .dbg_solid_sprites(dbg_solid_sprites)
 );
 
 wire enable_vshrink = status[11];

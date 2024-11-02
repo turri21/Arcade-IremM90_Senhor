@@ -54,7 +54,8 @@ module GA25(
 
     output reg [10:0] color_out,
 
-    input [2:0] dbg_en_layers
+    input [1:0] dbg_en_layers,
+    input dbg_solid_sprites
 );
 
 // VRAM
@@ -90,13 +91,13 @@ always_ff @(posedge clk) begin
             end
         end
 
-        _hblank = hcnt < 10'd102 || hcnt > 10'd421;
+        _hblank = hcnt < 10'd101 || hcnt > 10'd420;
         _vblank = vcnt > 10'd375 || vcnt < 10'd136;
 
         hblank <= _hblank;
         vblank <= _vblank;
-        hsync <= hcnt < 10'd71 || hcnt > 10'd454;
-        vsync <= vcnt > 10'd114 && vcnt < 10'd125;
+        hsync <= hcnt < 10'd63 || hcnt > 10'd446;
+        vsync <= vcnt > 10'd119 && vcnt < 10'd130;
         hpulse <= hcnt == 10'd46;
         vpulse <= (vcnt == 10'd124 && hcnt > 10'd260) || (vcnt == 10'd125 && hcnt < 10'd260);
     end
@@ -178,8 +179,13 @@ reg [14:0] obj_addr;
 
 always_ff @(posedge clk) begin
     bit [9:0] rs_y;
+
+    // increment mem_cyc even during reset
+    if (ce) begin
+        mem_cyc <= mem_cyc + 4'd1;
+    end
+
     if (reset) begin
-        mem_cyc <= 0;
         cpu_access_rq <= 2'd0;
         vram_we <= 0;
         
@@ -201,7 +207,6 @@ always_ff @(posedge clk) begin
         vram_we <= 0;
 
         if (ce) begin
-            mem_cyc <= mem_cyc + 4'd1;
             obj_sel <= 3'b000;
 
             if (ce_pix) begin
@@ -377,7 +382,7 @@ ga25_obj ga25_obj(
     .sdr_rdy(obj_gfx_rdy),
     .sdr_refresh(),
 
-    .dbg_solid_sprites(0)
+    .dbg_solid_sprites(dbg_solid_sprites)
 );
 
 

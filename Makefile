@@ -18,8 +18,9 @@ all: run
 $(RBF): $(SRCS)
 	$(QUARTUS_DIR)/quartus_sh --flow compile $(PROJECT) -c $(CONFIG)
 
-deploy.done: $(RBF)
+deploy.done: $(RBF) releases/m90.mra
 	scp $(RBF) $(MISTER):/media/fat/_Arcade/cores/IremM90.rbf
+	scp releases/m90.mra $(MISTER):/media/fat/_Arcade/m90.mra
 	echo done > deploy.done
 
 deploy: deploy.done

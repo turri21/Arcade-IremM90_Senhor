@@ -44,7 +44,7 @@ package board_pkg;
     typedef struct packed {
         bit secure;
         bit unused1;
-        bit unused2;
+        bit m99;
         bit rom_2mbit;
         bit [3:0] bank_mask;
     } board_cfg_t;
