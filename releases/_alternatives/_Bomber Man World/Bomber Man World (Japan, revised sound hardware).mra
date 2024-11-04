@@ -1,7 +1,7 @@
 <misterromdescription>
-    <name>Bomber Man World</name>
+    <name>Bomber Man World (Japan, revised sound hardware)</name>
     <mameversion>0245</mameversion>
-    <setname>bbmanw</setname>
+    <setname>bbmanwja</setname>
     <year>1991</year>
     <manufacturer>Irem</manufacturer>
     <category></category>
@@ -14,25 +14,24 @@
     <buttons default="B,A,Start,Select" names="Drop Bomb,Detonate Time Bomb,-,-,-,-,Start,Coin,P2 Start,Pause"></buttons>
     <switches default="00 00 00">
         <dip bits="0,1" ids="3,2,4,5" name="Lives"></dip>
-        <dip bits="2,3" ids="Medium,Easy,Hard,Hardest" name="Difficulty"></dip>
-        <dip bits="4" ids="Bomber Man,Dynablaster" name="Game Title"></dip>
+        <dip bits="2,3" ids="Medium,Easy,Hard,Easiest" name="Difficulty"></dip>
         <dip bits="5" ids="Yes,No" name="Allow Continue"></dip>
         <dip bits="6" ids="Off,On" name="Demo Sounds"></dip>
         <dip bits="7" ids="Off,On" name="Service Mode"></dip>
         <dip bits="8" ids="Off,On" name="Flip Screen"></dip>
-        <dip bits="9,10" ids="4 Player Upright A,2 Player Upright,4 Player Upright B,Cocktail" name="Cabinet"></dip>
+        <dip bits="9,10" ids="4 Player,2 Player,4 Player Shared,4 Player 2 Coins" name="Cabinet"></dip>
         <dip bits="12,15" ids="1C/1C,2C/1C,3C/1C,4C/1C,5C/1C,6C/1C,1C/2C,1C/3C,1C/4C,1C/5C,1C/6C,2C/3C,3C/2C,4C/3C,2S/1C,Free Play" name="Coin Mode"></dip>
     </switches>
 
-    <rom index="0" zip="bbmanw.zip" md5="None" address="0x30000000">
+    <rom index="0" zip="bbmanw.zip|bbmanwja.zip" md5="None" address="0x30000000">
         <!-- board type -->
-        <part>a0</part> <!-- secure, m99 -->
+        <part>80</part> <!-- secure, m99 -->
 
         <!-- maincpu -->
         <part>00 08 00 00</part>
         <interleave output="16">
-	        <part name="bbm2-h0-b.ic77" crc="567d3709" map="10"/>
-	        <part name="bbm2-l0-b.ic79" crc="e762c22b" map="01"/>
+	        <part name="bbm2-h0.ic77" crc="e1407b91" map="10"/>
+	        <part name="bbm2-l0.ic79" crc="20873b49" map="01"/>
         </interleave>
 
         <!-- gfx -->
@@ -46,11 +45,11 @@
 
         <!-- sound cpu -->
         <part>02 01 00 00</part>
-        <part name="bbm2-sp.ic33" crc="6bc1689e" />
+        <part name="bbm2-sp-b.ic33" crc="b8d8108c" />
 
         <!-- sound samples -->
         <part>03 02 00 00</part>
-        <part name="bbm2-v0.ic30" crc="4ad889ed" />
+        <part name="bbm2-v0-b.ic30" crc="0ae655ff" />
 
         <!-- cpu key -->
         <part>04 00 01 00</part>
