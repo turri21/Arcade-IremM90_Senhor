@@ -1,7 +1,7 @@
 <misterromdescription>
     <name>Dynablaster / Bomber Man</name>
     <mameversion>0245</mameversion>
-    <setname>dynablst</setname>
+    <setname>dynablst_signaltap</setname>
     <year>1991</year>
     <manufacturer>Irem</manufacturer>
     <category>Shooter</category>
