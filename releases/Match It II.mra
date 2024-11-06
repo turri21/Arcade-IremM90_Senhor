@@ -1,0 +1,72 @@
+<misterromdescription>
+    <name>Match It II</name>
+    <mameversion>0245</mameversion>
+    <setname>matchit2</setname>
+    <year>1991</year>
+    <manufacturer>Irem</manufacturer>
+    <category></category>
+    <rbf>IremM90</rbf>
+    <rotation>horizontal</rotation>
+
+    <players>4</players>
+    <joystick>4-way</joystick>
+    <num_buttons>2</num_buttons>
+    <buttons default="B,A,Start,Select" names="Drop Bomb,Detonate Time Bomb,-,-,-,-,Start,Coin,P2 Start,Pause"></buttons>
+    <switches default="00 00 00">
+        <dip bits="0,1" ids="3,2,4,5" name="Lives"></dip>
+        <dip bits="2,3" ids="Medium,Easy,Hard,Hardest" name="Difficulty"></dip>
+        <dip bits="4" ids="Bomber Man,Dynablaster" name="Game Title"></dip>
+        <dip bits="5" ids="Yes,No" name="Allow Continue"></dip>
+        <dip bits="6" ids="Off,On" name="Demo Sounds"></dip>
+        <dip bits="7" ids="Off,On" name="Service Mode"></dip>
+        <dip bits="8" ids="Off,On" name="Flip Screen"></dip>
+        <dip bits="9,10" ids="4 Player Upright A,2 Player Upright,4 Player Upright B,Cocktail" name="Cabinet"></dip>
+        <dip bits="12,15" ids="1C/1C,2C/1C,3C/1C,4C/1C,5C/1C,6C/1C,1C/2C,1C/3C,1C/4C,1C/5C,1C/6C,2C/3C,3C/2C,4C/3C,2S/1C,Free Play" name="Coin Mode"></dip>
+    </switches>
+
+    <rom index="0" zip="matchit2.zip" md5="None">
+        <!-- board type -->
+        <part>80</part> <!-- secure -->
+
+        <!-- maincpu -->
+        <part>00 08 00 00</part>
+        <interleave output="16">
+	        <part name="sis2-h0-b.ic77" crc="9a2556ac" map="10"/>
+	        <part name="sis2-l0-b.ic79" crc="d35d948a" map="01"/>
+        </interleave>
+
+        <!-- gfx -->
+        <part>01 20 00 00</part>
+        <interleave output="32">
+        	<part name="sis2_c0.ic81" crc="5a7cb88f" map="0001" />
+        	<part name="sis2_c1.ic82" crc="54a7852c" map="0010" />
+        	<part name="sis2_c2.ic83" crc="2bd65dc6" map="0100" />
+        	<part name="sis2_c3.ic84" crc="876d5fdb" map="1000" />
+        </interleave>
+
+        <!-- sound cpu -->
+        <part>02 01 00 00</part>
+        <part name="sis2-sp-.ic33" crc="6fc0ff3a" />
+
+        <!-- cpu key -->
+        <part>04 00 01 00</part>
+        <part>
+            90 86 0a 90 32 01 81 be ea 90 bb 90 90 90 a5 f6
+            5d 8c f3 c4 42 5a 22 26 90 58 90 fd 59 53 80 09
+            90 1e 48 e2 50 90 c3 23 90 90 e9 90 40 83 a3 46
+            49 b4 a9 90 d3 8b e8 b8 a0 90 90 90 84 90 90 90
+            90 90 90 90 14 90 25 90 90 5e 90 87 56 b9 4a 39
+            89 90 90 90 90 1f a4 90 f8 5f 21 b3 5b 90 8d 90
+            90 c5 7c 07 90 88 ba 47 35 fb 90 7f 90 90 c6 eb
+            90 c7 90 90 d2 a1 72 79 fe 24 ab 2a bc 0d 8f 7e
+            90 7d 90 e7 2d 90 90 57 0b a2 90 9d 90 90 74 85
+            af 2f 8a e6 08 90 ff 90 90 1c 90 90 02 90 90 90
+            43 04 90 90 bf 3b 93 38 90 90 90 77 90 b0 90 3a
+            fc 90 b5 90 90 90 90 05 52 76 2b e5 bd 90 0e b1
+            73 90 90 45 92 99 90 f7 3d d0 b6 36 f9 fa 0f 90
+            75 90 aa 9c 90 11 90 90 27 4b 90 2c 51 2e 4d 90
+            55 3c 90 b7 90 d1 8e 90 b2 90 78 90 12 90 29 0c
+            33 90 f2 90 90 90 90 90 90 03 06 a8 90 90 cf 90
+        </part>
+    </rom>
+</misterromdescription>
