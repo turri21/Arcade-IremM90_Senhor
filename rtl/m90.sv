@@ -286,7 +286,7 @@ end
 wire int_req;
 wire [7:0] int_vector;
 
-V33 v35(
+V35 v35(
     .clk(clk_sys),
     .ce(ce_cpu),
 
