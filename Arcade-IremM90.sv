@@ -505,8 +505,10 @@ wire m_start1   = joystick_p1[10] | key_start[0];
 wire m_start2   = joystick_p2[10] | joystick_combined[12] | key_start[1];
 wire m_start3   = joystick_p3[10] | key_start[2];
 wire m_start4   = joystick_p4[10] | key_start[3];
-wire m_coin1    = joystick_combined[11] | |key_coin;
-wire m_coin2    = 0;
+wire m_coin1    = joystick_p1[11] | key_coin[0];
+wire m_coin2    = joystick_p2[11] | key_coin[1];
+wire m_coin3    = joystick_p3[11] | key_coin[2];
+wire m_coin4    = joystick_p4[11] | key_coin[3];
 wire m_pause    = joystick_combined[13] | key_pause;
 
 //////////////////////////////////////////////////////////////////
@@ -535,8 +537,7 @@ m90 m90(
 
     .board_cfg(board_cfg),
 
-    .coin({2'd0, m_coin2, m_coin1}),
-    
+    .coin({m_coin4, m_coin3, m_coin2, m_coin1}),
     .start_buttons({m_start4, m_start3, m_start2, m_start1}),
     
     .p1_input(merged_p1[9:0]),
