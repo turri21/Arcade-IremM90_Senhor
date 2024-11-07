@@ -73,4 +73,13 @@
             8c 1f 51 04 f2 90 b3 b4 e9 2a 90 90 90 25 90 bc
         </part>
     </rom>
+    <!--hiscore support. see hiscore.sv for modified header values-->
+    <rom index="3" md5="none">
+        <part>
+            00 00 00 F0 05 FF 00 01 00 0F 00 01 00 01 02 00
+            00 0a 0b 2c 00 8f 03 03 
+            00 0a 0c 0f 00 03 40 00
+        </part>
+    </rom>
+    <nvram index="4" size="146"></nvram>
 </misterromdescription>

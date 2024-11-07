@@ -2,7 +2,7 @@
     <name>Bomber Man World (Japan, revised sound hardware)</name>
     <mameversion>0245</mameversion>
     <setname>bbmanwja</setname>
-    <year>1991</year>
+    <year>1992</year>
     <manufacturer>Irem</manufacturer>
     <category></category>
     <rbf>IremM90</rbf>
@@ -19,7 +19,7 @@
         <dip bits="6" ids="Off,On" name="Demo Sounds"></dip>
         <dip bits="7" ids="Off,On" name="Service Mode"></dip>
         <dip bits="8" ids="Off,On" name="Flip Screen"></dip>
-        <dip bits="9,10" ids="4 Player,2 Player,4 Player Shared,4 Player 2 Coins" name="Cabinet"></dip>
+        <dip bits="9,10" ids="2 Player,4 Player / 1 Coin,4 Player / 4 Coin,4 Player / 2 Coin" name="Cabinet"></dip>
         <dip bits="12,15" ids="1C/1C,2C/1C,3C/1C,4C/1C,5C/1C,6C/1C,1C/2C,1C/3C,1C/4C,1C/5C,1C/6C,2C/3C,3C/2C,4C/3C,2S/1C,Free Play" name="Coin Mode"></dip>
     </switches>
 
@@ -72,4 +72,12 @@
             0c a0 bd 90 90 2d 29 ea 90 3b 73 90 fb 20 90 5a
         </part>
     </rom>
+    <!--hiscore support. see hiscore.sv for modified header values-->
+    <rom index="3" md5="none">
+        <part>
+            00 00 00 F0 05 FF 00 01 00 0F 00 01 00 01 02 00
+            00 0a 0b 36 00 6a 02 2e
+        </part>
+    </rom>
+    <nvram index="4" size="106"></nvram>
 </misterromdescription>
