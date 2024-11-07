@@ -634,30 +634,36 @@ jtframe_resync #(5) jtframe_resync
 
 wire VGA_DE_MIXER;
 
-arcade_video #(320, 24, 1) arcade_video
-(
-	.clk_video(CLK_VIDEO),
-	.ce_pix(ce_pix),
+wire [2:0] sl = scandoubler_fx ? scandoubler_fx - 1'd1 : 3'd0;
+wire use_scandoubler = scandoubler_fx || forced_scandoubler;
 
-	.RGB_in({shrink_r, shrink_g, shrink_b}),
+assign VGA_SL  = sl[1:0];
+
+video_mixer #(.LINE_LENGTH(324), .HALF_DEPTH(0), .GAMMA(1)) video_mixer
+(
+	.CLK_VIDEO(CLK_VIDEO),
+	.ce_pix(ce_pix),
+	.CE_PIXEL(CE_PIXEL),
+
+	.scandoubler(use_scandoubler),
+	.hq2x(scandoubler_fx == 1),
+	.gamma_bus(gamma_bus),
+
 	.HBlank(shrink_hb),
 	.VBlank(shrink_vb),
 	.HSync(resync_hs),
 	.VSync(resync_vs),
 
-	.CLK_VIDEO(),
-	.CE_PIXEL(CE_PIXEL),
+	.R(shrink_r),
+	.G(shrink_g),
+	.B(shrink_b),
+
 	.VGA_R(VGA_R),
 	.VGA_G(VGA_G),
 	.VGA_B(VGA_B),
+	.VGA_VS(VGA_VS),
 	.VGA_HS(VGA_HS),
-    .VGA_VS(VGA_VS),
-	.VGA_DE(VGA_DE_MIXER),
-	.VGA_SL(VGA_SL),
-
-	.fx(scandoubler_fx),
-	.forced_scandoubler(forced_scandoubler),
-	.gamma_bus(gamma_bus)
+	.VGA_DE(VGA_DE_MIXER)
 );
 
 video_freak video_freak(
