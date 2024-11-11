@@ -1,3 +1,7 @@
+=(Irem90_Senhor notes)=-
+
+Tested: Working Video 720p, 1080p & Sound
+
 # Irem M90 Core
 
 MiSTer FPGA core for the [Irem M90](https://www.system16.com/hardware.php?id=746), [M97 and M99](https://www.system16.com/hardware.php?id=748) arcade system. This system is most commonly known for Bomber Man and Bomber Man World, which are also call some variation of "Dyna Blaster" or "Atomic Punk" in some regions. It is a single board system based around an NEC V35 main CPU, a single graphics IC called a GA25 and a Z80/YM2151 based sound system. The V35 is a microcontroller version of the V30 used on the M72 boards. It contains a built in interupt controller which is used by these games. It also contains other features such as timers and DMA controllers, which are not used. The audio hardware is almost identical to the hardware found on M72 and M84 systems. The GA25 manages both sprites and tilemaps. It supports two tilemap layers and up to 84 sprites. Row scrolling and row selection is supported.
