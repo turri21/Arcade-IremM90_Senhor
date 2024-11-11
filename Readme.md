@@ -2,7 +2,7 @@
 
 Tested: Working Video 720p, 1080p & Sound
 
-Dev notes: Fast version works best for Bomberman World.(It fixes the ROM error on loading)
+Dev notes: Fast version works best for Bomberman World (it fixes the ROM error on loading).
 
 # Irem M90 Core
 
