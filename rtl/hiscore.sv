@@ -103,17 +103,16 @@ localparam SM_WAITDATA   = 2;
 
 localparam SM_CHECKPREP		 = 3;
 localparam SM_CHECKBEGIN	 = 4;
-localparam SM_CHECKREADY	 = 5;
-localparam SM_CHECKSTARTVAL  = 6;
-localparam SM_CHECKENDVAL	 = 7;
-localparam SM_CHECKCANCEL	 = 8;
+localparam SM_CHECKSTARTVAL = 5;
+localparam SM_CHECKENDVAL	 = 6;
+localparam SM_CHECKCANCEL	 = 7;
 
-localparam SM_WRITEPREP		 = 9;
-localparam SM_WRITEBEGIN	 = 10;
-localparam SM_WRITEREADY	 = 11;
-localparam SM_WRITEDONE		 = 12;
-localparam SM_WRITECOMPLETE  = 13;
-localparam SM_WRITERETRY	 = 14;
+localparam SM_WRITEPREP		 = 8;
+localparam SM_WRITEBEGIN	 = 9;
+localparam SM_WRITEREADY	 = 10;
+localparam SM_WRITEDONE		 = 11;
+localparam SM_WRITECOMPLETE = 12;
+localparam SM_WRITERETRY	 = 13;
 
 localparam SM_COMPAREINIT	 = 16;
 localparam SM_COMPAREBEGIN	 = 17;
@@ -631,12 +630,7 @@ begin
 							pause_cpu <= 1'b1;
 						end
 
-					SM_CHECKBEGIN:
-						begin // stall for counter addr to update
-						  	state <= SM_CHECKREADY; 
-						end
-
-					SM_CHECKREADY: // Begin start/end check run - enable RAM access
+					SM_CHECKBEGIN: // Begin start/end check run - enable RAM access
 						begin
 							checking_scores <= 1'b1;
 							ram_addr <= {1'b0, addr_base};

@@ -136,7 +136,7 @@ ga25_sdram sdram(
     .sdr_data,
     .sdr_req,
     .sdr_rdy,
-    .sdr_64bit,
+    .sdr_64bit
 );
 
 //// MEMORY ACCESS
