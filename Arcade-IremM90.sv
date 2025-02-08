@@ -606,7 +606,7 @@ irem_video irem_video(
     .core_r, .core_g, .core_b,
 
     .HDMI_WIDTH, .HDMI_HEIGHT,
-    .VIDEO_ARX, .VIDEO_ARY
+    .VIDEO_ARX, .VIDEO_ARY,
 
     .gamma_bus,
 
