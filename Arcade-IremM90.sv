@@ -199,9 +199,6 @@ assign BUTTONS = 0;
 
 //////////////////////////////////////////////////////////////////
 
-wire [1:0] ar = status[2:1];
-wire [2:0] scandoubler_fx = status[31:29];
-wire [1:0] scale = status[6:5];
 wire pause_in_osd = status[7];
 wire system_pause;
 
@@ -271,9 +268,6 @@ wire [15:0] joystick_p1, joystick_p2, joystick_p3, joystick_p4;
 wire [21:0] gamma_bus;
 wire        direct_video;
 wire        video_rotated;
-wire        no_rotate = ~status[10];
-wire        flip = 0;
-wire        rotate_ccw = 1;
 
 wire        autosave = status[8];
 
@@ -515,15 +509,12 @@ wire m_pause    = joystick_combined[13] | key_pause;
 
 wire [7:0] core_r, core_g, core_b;
 wire core_hb, core_vb, core_hs, core_vs;
-wire [7:0] shrink_r, shrink_g, shrink_b;
-wire shrink_hb, shrink_vb, shrink_hs, shrink_vs;
-wire resync_hs, resync_vs;
-wire ce_pix;
+wire core_ce_pix;
 
 m90 m90(
     .clk_sys(clk_sys),
     .clk_ram(clk_ram),
-    .ce_pix(ce_pix),
+    .ce_pix(core_ce_pix),
     .reset_n(~reset),
     .HBlank(core_hb),
     .VBlank(core_vb),
@@ -590,100 +581,53 @@ m90 m90(
     .dbg_solid_sprites(dbg_solid_sprites)
 );
 
-wire enable_vshrink = status[11];
-vshrink vshrink(
-    .clk(CLK_VIDEO),
-    .ce_pix,
 
-    .enable(enable_vshrink),
-    .debug(0),
+wire          enable_vshrink = status[11];
+wire [4:0]    hoffset        = status[21:17];
+wire [4:0]    voffset        = status[26:22];
+wire          rotate         = status[10];
+wire [1:0]    ar             = status[2:1];
+wire [2:0]    scandoubler_fx = status[31:29];
+wire [1:0]    scale          = status[6:5];
 
-    .hs_in(core_hs),
-    .vs_in(core_vs),
-    .hb_in(core_hb),
-    .vb_in(core_vb),
-    .r_in(core_r),
-    .g_in(core_g),
-    .b_in(core_b),
+irem_video irem_video(
+    .CLK_VIDEO,
 
-    .hs_out(shrink_hs),
-    .vs_out(shrink_vs),
-    .hb_out(shrink_hb),
-    .vb_out(shrink_vb),
-    .r_out(shrink_r),
-    .g_out(shrink_g),
-    .b_out(shrink_b)
+    .enable_vshrink, .hoffset, .voffset,
+
+    .forced_scandoubler, .scandoubler_fx,
+    .ar, .scale,
+
+    .rotate, .rotate_ccw(1), .flip(0),
+    .video_rotated,
+
+    .core_ce_pix,
+    .core_hs, .core_vs, .core_hb, .core_vb,
+    .core_r, .core_g, .core_b,
+
+    .HDMI_WIDTH, .HDMI_HEIGHT,
+    .VIDEO_ARX, .VIDEO_ARY
+
+    .gamma_bus,
+
+    .FB_EN, .FB_FORMAT,
+    .FB_WIDTH, .FB_HEIGHT,
+    .FB_BASE, .FB_STRIDE,
+    .FB_VBL, .FB_LL,
+
+    .DDRAM_BUSY(DDRAM_BUSY),
+    .DDRAM_BURSTCNT(ROTATE_DDRAM_BURSTCNT),
+    .DDRAM_ADDR(ROTATE_DDRAM_ADDR),
+    .DDRAM_DIN(DDRAM_DIN),
+    .DDRAM_BE(ROTATE_DDRAM_BE),
+    .DDRAM_WE(ROTATE_DDRAM_WE),
+    .DDRAM_RD(ROTATE_DDRAM_RD),
+
+    .CE_PIXEL,
+    .VGA_R, .VGA_G, .VGA_B,
+    .VGA_HS, .VGA_VS, .VGA_DE,
+    .VGA_SL
 );
-
-// H/V offset
-wire [4:0]    hoffset = status[21:17];
-wire [4:0]    voffset = status[26:22];
-jtframe_resync #(5) jtframe_resync
-(
-    .clk(CLK_VIDEO),
-    .pxl_cen(ce_pix),
-    .hs_in(shrink_hs),
-    .vs_in(shrink_vs),
-    .LVBL(~shrink_vb),
-    .LHBL(~shrink_hb),
-    .hoffset(-hoffset), // flip the sign
-    .voffset(-voffset),
-    .hs_out(resync_hs),
-    .vs_out(resync_vs)
-);
-
-wire VGA_DE_MIXER;
-
-wire [2:0] sl = scandoubler_fx ? scandoubler_fx - 1'd1 : 1'd0;
-wire use_scandoubler = scandoubler_fx || forced_scandoubler;
-
-assign VGA_SL  = sl[1:0];
-
-video_mixer #(.LINE_LENGTH(324), .HALF_DEPTH(0), .GAMMA(1)) video_mixer
-(
-    .CLK_VIDEO(CLK_VIDEO),
-    .ce_pix(ce_pix),
-    .CE_PIXEL(CE_PIXEL),
-
-    .scandoubler(use_scandoubler),
-    .hq2x(scandoubler_fx == 1),
-    .gamma_bus(gamma_bus),
-
-    .HBlank(shrink_hb),
-    .VBlank(shrink_vb),
-    .HSync(resync_hs),
-    .VSync(resync_vs),
-
-    .R(shrink_r),
-    .G(shrink_g),
-    .B(shrink_b),
-
-    .VGA_R(VGA_R),
-    .VGA_G(VGA_G),
-    .VGA_B(VGA_B),
-    .VGA_VS(VGA_VS),
-    .VGA_HS(VGA_HS),
-    .VGA_DE(VGA_DE_MIXER)
-);
-
-video_freak video_freak(
-    .CLK_VIDEO(CLK_VIDEO),
-    .CE_PIXEL(CE_PIXEL),
-    .VGA_VS(VGA_VS),
-    .HDMI_WIDTH(HDMI_WIDTH),
-    .HDMI_HEIGHT(HDMI_HEIGHT),
-    .VGA_DE(VGA_DE),
-    .VIDEO_ARX(VIDEO_ARX),
-    .VIDEO_ARY(VIDEO_ARY),
-
-    .VGA_DE_IN(VGA_DE_MIXER),
-    .ARX((!ar) ? ( no_rotate ? 12'd4 : 12'd3 ) : (ar - 1'd1)),
-    .ARY((!ar) ? ( no_rotate ? 12'd3 : 12'd4 ) : 12'd0),
-    .CROP_SIZE(0),
-    .CROP_OFF(0),
-    .SCALE(scale)
-);
-
 
 pause pause(
     .clk_sys(clk_sys),
@@ -695,20 +639,7 @@ pause pause(
     .OSD_STATUS(OSD_STATUS)
 );
 
-screen_rotate screen_rotate(
-    .DDRAM_CLK(), // it's clk_sys and clk_video
-    .DDRAM_BUSY,
-    .DDRAM_BURSTCNT(ROTATE_DDRAM_BURSTCNT),
-    .DDRAM_ADDR(ROTATE_DDRAM_ADDR),
-    .DDRAM_DIN,
-    .DDRAM_BE(ROTATE_DDRAM_BE),
-    .DDRAM_WE(ROTATE_DDRAM_WE),
-    .DDRAM_RD(ROTATE_DDRAM_RD),
-    .*
-);
-
 //HISCORE
-
 wire [19:0]     hs_address;
 wire [7:0]      hs_din;
 wire [7:0]      hs_dout;

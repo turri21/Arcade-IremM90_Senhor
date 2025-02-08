@@ -20,6 +20,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/hiscore.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/rom_cache.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/vshrink.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/irem_video.sv
 
 set_global_assignment -name QIP_FILE rtl/V35/v35.qip
 set_global_assignment -name QIP_FILE rtl/T80/T80.qip
