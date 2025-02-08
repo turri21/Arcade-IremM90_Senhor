@@ -210,7 +210,7 @@ assign HDMI_FREEZE = 0; //system_pause;
 wire [1:0] dbg_en_layers = ~status[65:64];
 wire dbg_solid_sprites = status[67];
 
-`include "build_id.v" 
+`include "build_id.v"
 localparam CONF_STR = {
     "IremM90;;",
     "-;",
@@ -240,7 +240,7 @@ localparam CONF_STR = {
     "-;",
     "T[0],Reset;",
     "DEFMRA,/_Arcade/m90_test.mra;",
-    "V,v",`BUILD_DATE 
+    "V,v",`BUILD_DATE
 };
 
 wire        forced_scandoubler;
@@ -425,19 +425,19 @@ ddr_download_adaptor ddr_download(
     .ioctl_wait(ioctl_rom_wait),
 
     .busy(rom_load_busy),
-    
+
     .data_wait(rom_data_wait),
     .data_strobe(rom_data_strobe),
     .data(rom_data),
 
-	.DDRAM_BUSY,
-	.DDRAM_DOUT,
+    .DDRAM_BUSY,
+    .DDRAM_DOUT,
     .DDRAM_DOUT_READY,
-	.DDRAM_BURSTCNT(ROM_DDRAM_BURSTCNT),
-	.DDRAM_ADDR(ROM_DDRAM_ADDR),
-	.DDRAM_BE(ROM_DDRAM_BE),
-	.DDRAM_WE(ROM_DDRAM_WE),
-	.DDRAM_RD(ROM_DDRAM_RD)
+    .DDRAM_BURSTCNT(ROM_DDRAM_BURSTCNT),
+    .DDRAM_ADDR(ROM_DDRAM_ADDR),
+    .DDRAM_BE(ROM_DDRAM_BE),
+    .DDRAM_WE(ROM_DDRAM_WE),
+    .DDRAM_RD(ROM_DDRAM_RD)
 );
 
 rom_loader rom_loader(
@@ -464,7 +464,7 @@ rom_loader rom_loader(
 
 
 // DIP SWITCHES
-reg [7:0] dip_sw[8];	// Active-LOW
+reg [7:0] dip_sw[8];    // Active-LOW
 always @(posedge clk_sys) begin
     if(ioctl_wr && (ioctl_index==254) && !ioctl_addr[24:3])
         dip_sw[ioctl_addr[2:0]] <= ioctl_dout;
@@ -539,12 +539,12 @@ m90 m90(
 
     .coin({m_coin4, m_coin3, m_coin2, m_coin1}),
     .start_buttons({m_start4, m_start3, m_start2, m_start1}),
-    
+
     .p1_input(merged_p1[9:0]),
     .p2_input(merged_p2[9:0]),
     .p3_input(merged_p3[9:0]),
     .p4_input(merged_p4[9:0]),
-   
+
     .dip_sw({dip_sw[2], dip_sw[1], dip_sw[0]}),
 
     .sdr_bg_addr(sdr_bg_addr),
@@ -566,14 +566,14 @@ m90 m90(
 
     .ioctl_download(ioctl_download),
     .ioctl_index(ioctl_index),
-	.ioctl_wr(ioctl_wr),
-	.ioctl_addr(ioctl_addr),
-	.ioctl_dout(ioctl_dout),
-	
+    .ioctl_wr(ioctl_wr),
+    .ioctl_addr(ioctl_addr),
+    .ioctl_dout(ioctl_dout),
+
     .ioctl_upload(ioctl_upload),
     .ioctl_upload_index(ioctl_upload_index),
-	.ioctl_din(ioctl_m90_din),
-	.ioctl_rd(ioctl_rd),
+    .ioctl_din(ioctl_m90_din),
+    .ioctl_rd(ioctl_rd),
     .ioctl_upload_req(ioctl_m90_upload_req),
 
     .pause_rq(system_pause),
@@ -616,54 +616,54 @@ vshrink vshrink(
 );
 
 // H/V offset
-wire [4:0]	hoffset = status[21:17];
-wire [4:0]	voffset = status[26:22];
+wire [4:0]    hoffset = status[21:17];
+wire [4:0]    voffset = status[26:22];
 jtframe_resync #(5) jtframe_resync
 (
-	.clk(CLK_VIDEO),
-	.pxl_cen(ce_pix),
-	.hs_in(shrink_hs),
-	.vs_in(shrink_vs),
-	.LVBL(~shrink_vb),
-	.LHBL(~shrink_hb),
-	.hoffset(-hoffset), // flip the sign
-	.voffset(-voffset),
-	.hs_out(resync_hs),
-	.vs_out(resync_vs)
+    .clk(CLK_VIDEO),
+    .pxl_cen(ce_pix),
+    .hs_in(shrink_hs),
+    .vs_in(shrink_vs),
+    .LVBL(~shrink_vb),
+    .LHBL(~shrink_hb),
+    .hoffset(-hoffset), // flip the sign
+    .voffset(-voffset),
+    .hs_out(resync_hs),
+    .vs_out(resync_vs)
 );
 
 wire VGA_DE_MIXER;
 
-wire [2:0] sl = scandoubler_fx ? scandoubler_fx - 1'd1 : 3'd0;
+wire [2:0] sl = scandoubler_fx ? scandoubler_fx - 1'd1 : 1'd0;
 wire use_scandoubler = scandoubler_fx || forced_scandoubler;
 
 assign VGA_SL  = sl[1:0];
 
 video_mixer #(.LINE_LENGTH(324), .HALF_DEPTH(0), .GAMMA(1)) video_mixer
 (
-	.CLK_VIDEO(CLK_VIDEO),
-	.ce_pix(ce_pix),
-	.CE_PIXEL(CE_PIXEL),
+    .CLK_VIDEO(CLK_VIDEO),
+    .ce_pix(ce_pix),
+    .CE_PIXEL(CE_PIXEL),
 
-	.scandoubler(use_scandoubler),
-	.hq2x(scandoubler_fx == 1),
-	.gamma_bus(gamma_bus),
+    .scandoubler(use_scandoubler),
+    .hq2x(scandoubler_fx == 1),
+    .gamma_bus(gamma_bus),
 
-	.HBlank(shrink_hb),
-	.VBlank(shrink_vb),
-	.HSync(resync_hs),
-	.VSync(resync_vs),
+    .HBlank(shrink_hb),
+    .VBlank(shrink_vb),
+    .HSync(resync_hs),
+    .VSync(resync_vs),
 
-	.R(shrink_r),
-	.G(shrink_g),
-	.B(shrink_b),
+    .R(shrink_r),
+    .G(shrink_g),
+    .B(shrink_b),
 
-	.VGA_R(VGA_R),
-	.VGA_G(VGA_G),
-	.VGA_B(VGA_B),
-	.VGA_VS(VGA_VS),
-	.VGA_HS(VGA_HS),
-	.VGA_DE(VGA_DE_MIXER)
+    .VGA_R(VGA_R),
+    .VGA_G(VGA_G),
+    .VGA_B(VGA_B),
+    .VGA_VS(VGA_VS),
+    .VGA_HS(VGA_HS),
+    .VGA_DE(VGA_DE_MIXER)
 );
 
 video_freak video_freak(
@@ -727,23 +727,23 @@ hiscore #(
                 .HS_ADDRESSWIDTH(20),
                 .CFG_LENGTHWIDTH(2)
 ) hi (
-        .*,
-        .ioctl_upload_req(ioctl_hs_upload_req),
-        .clk(clk_sys),
-        .paused(cpu_paused),
-        .autosave(status[8]),
-        .ram_address(hs_address),
-        .v_sync(core_vs),
-        .data_ready(hs_data_ready),
-        .data_from_ram(hs_dout),
-        .data_to_ram(hs_din),
-        .data_from_hps(ioctl_dout),
-        .data_to_hps(ioctl_hs_din),
-        .ram_write(hs_write),
-        .ram_read(hs_read),
-        .ram_intent_read(),
-        .ram_intent_write(),
-        .pause_cpu(hs_pause),
-        .configured(hs_configured)
+    .*,
+    .ioctl_upload_req(ioctl_hs_upload_req),
+    .clk(clk_sys),
+    .paused(cpu_paused),
+    .autosave(status[8]),
+    .ram_address(hs_address),
+    .v_sync(core_vs),
+    .data_ready(hs_data_ready),
+    .data_from_ram(hs_dout),
+    .data_to_ram(hs_din),
+    .data_from_hps(ioctl_dout),
+    .data_to_hps(ioctl_hs_din),
+    .ram_write(hs_write),
+    .ram_read(hs_read),
+    .ram_intent_read(),
+    .ram_intent_write(),
+    .pause_cpu(hs_pause),
+    .configured(hs_configured)
 );
 endmodule
